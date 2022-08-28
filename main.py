@@ -1,79 +1,54 @@
 from bs4 import BeautifulSoup
 import requests
 import re
-import timeit
 
 username = input("Enter Username : ")
 HostURL = "https://auth.geeksforgeeks.org/user/" + username + "/practice/"
-ComparerUsername = "anindiangeek"  # this can be changed or taken as argument.
+ComparerUsername = input("Enter Other Username : ")
 ComparerURL = "https://auth.geeksforgeeks.org/user/" + ComparerUsername + "/practice/"
 
 HostPage = BeautifulSoup(requests.get(HostURL).text, "lxml")
 ComparerPage = BeautifulSoup(requests.get(ComparerURL).text, "lxml")
 
+HostData = [HostPage.find_all(class_="score_card_value")[0].text,
+            HostPage.find_all(class_="score_card_value")[1].text,
+            HostPage.find_all(class_="rankNum")[0].text]
 
-# Data 1 includes OverallCoding score and Problems Solved
-Data1 = HostPage.find_all(
-    class_="mdl-cell mdl-cell--6-col mdl-cell--12-col-phone textBold"
-)
+ComparerData = [ComparerPage.find_all(class_="score_card_value")[0].text,
+                ComparerPage.find_all(class_="score_card_value")[1].text,
+                ComparerPage.find_all(class_="rankNum")[0].text]
 
-Diff_data1 = ComparerPage.find_all(
-    class_="mdl-cell mdl-cell--6-col mdl-cell--12-col-phone textBold"
-)
 
-OCS, PS = re.findall(r"\d+", Data1[0].text)[0], re.findall(r"\d+", Data1[1].text)[0]
-diff_OCS, diffPS = (
-    re.findall(r"\d+", Diff_data1[0].text)[0],
-    re.findall(r"\d+", Diff_data1[1].text)[0],
-)
+print("\nCoding Score : " + HostData[0] + "   (" + f"{int(HostData[0]) - int(ComparerData[0])}" + ")")
+print("Problem Solved : " + HostData[1] + "   (" + f"{int(HostData[1]) - int(ComparerData[1])}" + ") " + "\n")
 
-print("\nCoding Score : " + OCS + "   (" + f"{int(OCS)-int(diff_OCS)}" + ")")
-print("Problem Solved : " + PS + "   (" + f"{int(PS)-int(diffPS)}" + ") " + "\n")
 
-# finding the Easy hard medium levels
 print("< < < < < < < < < Solved Composition > > > > > > > > > ")
-Data2 = HostPage.find_all(class_="mdl-tabs__tab")
-diff_Data2 = ComparerPage.find_all(class_="mdl-tabs__tab")
-ProblemSets = []  # School Basic Easy Medium Hard
-diff_ProblemSets = []
 
-for i in range(5):
-    ProblemSets.append((re.findall(r"\d+", Data2[i].text)[0]))
-    diff_ProblemSets.append((re.findall(r"\d+", diff_Data2[i].text)[0]))
+HostProblemComposition = re.findall(r"\d+", HostPage.find_all(class_="tabs tabs-fixed-width linksTypeProblem")[0].text)
+CompProblemCompostion = re.findall(r"\d+",
+                                   ComparerPage.find_all(class_="tabs tabs-fixed-width linksTypeProblem")[0].text)
 
 content = ["School", "Easy  ", "Basic ", "Medium", "Hard  "]
-for index, item in enumerate(ProblemSets):
+for index, item in enumerate(HostProblemComposition):
     print(
         content[index]
         + "  : "
         + item
         + "    ("
-        + f"{int(item)-int(diff_ProblemSets[index])}"
+        + f"{int(item) - int(CompProblemCompostion[index])}"
         + ") "
     )
 print("________________________________________ \n")
 
-# list of School Problems
+HostAllProblems = set([x.text for x in HostPage.find_all(class_="problemLink")])
+ComparerAllProblems = set([x.text for x in ComparerPage.find_all(class_="problemLink")])
 
-Data3 = HostPage.find_all(
-    "li", class_="mdl-cell mdl-cell--6-col mdl-cell--12-col-phone"
-)
-diffData3 = ComparerPage.find_all(
-    "li", class_="mdl-cell mdl-cell--6-col mdl-cell--12-col-phone"
-)
+print("\n< --- Problems solved by {} but not by {} --- > \n".format(username, ComparerUsername))
+for i in [x for x in HostAllProblems if x not in ComparerAllProblems]:
+    print(i)
 
-# print(Data3)
-questions = []
-diff_questions = []
-
-for i in Data3:
-    questions.append(i.text)
-for i in diffData3:
-    diff_questions.append(i.text)
-
-s = set(diff_questions)
-LeftOver = [x for x in questions if x not in s]
-
-print("< --- Left Problems --- > \n")
-for i in LeftOver:
+print("\n")
+print("\n< --- Problems solved by {} but not by {} --- > \n".format(ComparerUsername, username))
+for i in [x for x in ComparerAllProblems if x not in HostAllProblems]:
     print(i)
